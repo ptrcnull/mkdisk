@@ -33,21 +33,19 @@ if [ $(id -u) != 0 ]; then
 	ROOT="unshare -r"
 fi
 
-diskfile="$(realpath -m "$1")"
-output="$(realpath -m "$2")"
-
 tempdir="$(mktemp -d)"
 (
-	cd "$tempdir"
 	branch="${version%.[0-9]}"
 	filename="alpine-minirootfs-$version-$arch.tar.gz"
 
-	wget $mirror/v$branch/releases/$arch/$filename || exit 1
-	mkdir tmp
-	tar xf $filename -C tmp
+	wget $mirror/v$branch/releases/$arch/$filename -O "$tempdir/rootfs.tar.gz" || exit 1
 
-	$ROOT apk --root tmp upgrade -Ua
-	$ROOT apk --root tmp add $pkgs
+	root="$tempdir"/tmp
+	mkdir "$root"
+	tar xf "$tempdir/rootfs.tar.gz" -C "$root"
+
+	$ROOT apk --root "$root" upgrade -Ua
+	$ROOT apk --root "$root" add $pkgs
 
 	for file in $files; do
 		IFS=: read source target < <(echo "$file")
@@ -56,17 +54,17 @@ tempdir="$(mktemp -d)"
 			target="$source"
 		fi
 
-		mkdir -p tmp/"$(dirname "$target")"
-		cp -r "$source" tmp/"$target"
+		mkdir -p "$root/$(dirname "$target")"
+		cp -r "$source" "$root/$target"
 	done
 
-	cat "$diskfile" <(echo setup) | $ROOT chroot tmp sh
+	cat "$1" <(echo setup) | $ROOT chroot "$root" sh
 
-	size=$(du -sm tmp | cut -f1)
+	size=$(du -sm "$root" | cut -f1)
 	disk_size=$(( size + 5 ))
 
-	truncate -s ${disk_size}M "$output"
+	truncate -s ${disk_size}M "$2"
 
-	$ROOT mke2fs -t ext4 -d tmp "$output"
+	$ROOT mke2fs -t ext4 -d "$root" "$2"
 )
 rm -rf "$tempdir"
