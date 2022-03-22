@@ -1,0 +1,56 @@
+#!/bin/sh
+
+usage() {
+	cat >&2 <<-__EOF__
+		mkdisk 0.1.0 - generate alpine ext4 images
+		Usage: mkdisk DISKFILE OUTPUT
+	__EOF__
+}
+
+if [ -z "$2" ]; then
+	usage
+	exit 1
+fi
+
+if ! [ -f "$1" ]; then
+	echo "diskfile $1 does not exist"
+	exit 1
+fi
+# 
+if [ -f "$2" ]; then
+	echo "output file $2 already exists"
+	exit 1
+fi
+
+. "$1"
+
+if [ $(id -u) != 0 ]; then
+	ROOT="unshare -r"
+fi
+
+diskfile="$(realpath $(dirname "$1"))"/"$(basename $1)"
+output="$(realpath $(dirname "$2"))"/"$(basename $2)"
+
+tempdir="$(mktemp -d)"
+(
+	cd "$tempdir"
+	branch="${version%.[0-9]}"
+	filename="alpine-minirootfs-$version-$arch.tar.gz"
+
+	wget https://dl-cdn.alpinelinux.org/alpine/v$branch/releases/$arch/$filename || exit 1
+	mkdir tmp
+	tar xf $filename -C tmp
+
+	$ROOT apk --root tmp upgrade -Ua
+	$ROOT apk --root tmp add $pkgs
+
+	cat "$diskfile" <(echo setup) | $ROOT chroot tmp sh
+
+	size=$(du -sm tmp | cut -f1)
+	disk_size=$(( size + 5 ))
+
+	truncate -s ${disk_size}M "$output"
+
+	$ROOT mke2fs -t ext4 -d tmp "$output"
+)
+rm -rf "$tempdir"
