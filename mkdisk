@@ -44,6 +44,17 @@ tempdir="$(mktemp -d)"
 	$ROOT apk --root tmp upgrade -Ua
 	$ROOT apk --root tmp add $pkgs
 
+	for file in $files; do
+		IFS=: read source target < <(echo "$file")
+
+		if [ "$target" = "" ]; then
+			target="$source"
+		fi
+
+		mkdir -p tmp/"$(dirname "$target")"
+		cp -r "$source" tmp/"$target"
+	done
+
 	cat "$diskfile" <(echo setup) | $ROOT chroot tmp sh
 
 	size=$(du -sm tmp | cut -f1)
