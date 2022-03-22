@@ -26,9 +26,6 @@ fi
 mirror=https://dl-cdn.alpinelinux.org/alpine
 version=3.15.1
 arch=x86_64
-setup() {
-	:
-}
 
 . "$1"
 
