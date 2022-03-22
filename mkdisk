@@ -23,6 +23,7 @@ if [ -f "$2" ]; then
 fi
 
 # set sane defaults
+mirror=https://dl-cdn.alpinelinux.org/alpine
 version=3.15.1
 arch=x86_64
 setup() {
@@ -44,7 +45,7 @@ tempdir="$(mktemp -d)"
 	branch="${version%.[0-9]}"
 	filename="alpine-minirootfs-$version-$arch.tar.gz"
 
-	wget https://dl-cdn.alpinelinux.org/alpine/v$branch/releases/$arch/$filename || exit 1
+	wget $mirror/v$branch/releases/$arch/$filename || exit 1
 	mkdir tmp
 	tar xf $filename -C tmp
 
