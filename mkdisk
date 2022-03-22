@@ -16,7 +16,7 @@ if ! [ -f "$1" ]; then
 	echo "diskfile $1 does not exist"
 	exit 1
 fi
-# 
+
 if [ -f "$2" ]; then
 	echo "output file $2 already exists"
 	exit 1
@@ -28,8 +28,8 @@ if [ $(id -u) != 0 ]; then
 	ROOT="unshare -r"
 fi
 
-diskfile="$(realpath $(dirname "$1"))"/"$(basename $1)"
-output="$(realpath $(dirname "$2"))"/"$(basename $2)"
+diskfile="$(realpath -m "$1")"
+output="$(realpath -m "$2")"
 
 tempdir="$(mktemp -d)"
 (
